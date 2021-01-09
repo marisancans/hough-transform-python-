@@ -49,52 +49,6 @@ def get_spectre(map, thetas):
 
     return spectre, accumulator
 
-def translate_X(map, position):
-    if position == 0:
-        return map
-
-    if position > 0:
-        direction = 1
-    else:
-        direction = -1
-
-    for i in range(abs(position)):
-        map = np.roll(map, direction, axis=1)
-
-        # dumb way to roll without warping
-        if direction == 1: # determine which way 
-            map[:, 0] = 1.0
-        else:
-            map[:, -1] = 1.0
-
-    return map
-
-
-def translate_Y(map, position):
-    if position == 0:
-        return map
-
-    if position > 0:
-        direction = 1
-    else:
-        direction = -1
-
-    for i in range(abs(position)):
-        map = np.roll(map, direction, axis=0)
-
-        # dumb way to roll without warping
-        if direction == 1: # determine which way 
-            map[0, :] = 1.0
-        else:
-            map[-1, :] = 1.0
-    return map
-
-
-def copy_map(map):
-    map_copy = map.copy()
-    map_copy = map_copy.astype(np.float32) / 255.0
-    return map_copy
-
 def calc_correlation(series_1, series_2):
     cors = []
     sp_cpy = series_2.copy()
@@ -108,76 +62,72 @@ def calc_correlation(series_1, series_2):
 
 
 def calc_correlation_for_translation(series_1, series_2, position):
-    # position = 2
+    # position = -2
     # series_1 = np.array([6,10,5,4])
     # series_2 = np.array([10,3,2,4])
-    sp_cpy = series_2.copy()
+    s_1_cpy = series_1.copy()
+    s_2_cpy = series_2.copy()
 
     if position == 0:
-        x = series_1 * sp_cpy
+        x = s_1_cpy * s_2_cpy
         c = np.sum(x)
         return c
 
     if position > 0:
-        direction = 1
+        direction = True # Right
     else:
-        direction = -1
+        direction = False # Left
 
     for i in range(abs(position)):
-        sp_cpy = np.roll(sp_cpy, direction, axis=0)
-
-        # dumb way to roll without warping
-        if direction == 1: # determine which way 
-            sp_cpy[0] = 0
+        if direction:
+            s_1_cpy = np.delete(s_1_cpy, 0)
+            s_2_cpy = np.delete(s_2_cpy, -1)
         else:
-            sp_cpy[-1] = 0
+            s_1_cpy = np.delete(s_1_cpy, -1)
+            s_2_cpy = np.delete(s_2_cpy, 0) 
 
-    x = series_1 * sp_cpy
+    x = s_1_cpy * s_2_cpy
     c = np.sum(x)
 
     return c
 
-
-def calc_translate(map_1, map_2, pos):
-    spectre_1_X = np.sum(map_1, axis=0)
-    spectre_2_X = np.sum(map_2, axis=0)
-
-    X = calc_correlation_for_translation(spectre_1_X, spectre_2_X, pos)
-    X = np.sum(X)
-
-    spectre_1_Y = np.sum(map_1, axis=1)
-    spectre_2_Y = np.sum(map_2, axis=1)
-
-    Y = calc_correlation_for_translation(spectre_1_Y, spectre_2_Y, pos)
-    Y = np.sum(Y)
-
-    return X, Y
+def normalize(np_arr):
+    return np_arr / np.max(np_arr)
 
 def translate_maps(map_1, map_2_rotated):
-    map_1_copy = map_1.copy()   
-    map_1_copy = map_1_copy.astype(np.float32) / 255.0
+    spectre_1_X = np.sum(map_1, axis=0)
+    spectre_2_X = np.sum(map_2_rotated, axis=0)
+
+    spectre_1_Y = np.sum(map_1, axis=1)
+    spectre_2_Y = np.sum(map_2_rotated, axis=1)
+
+    # Normalize
+    # spectre_1_X = normalize(spectre_1_X)
+    # spectre_2_X = normalize(spectre_2_X)
+
+    # spectre_1_Y = normalize(spectre_1_Y)
+    # spectre_2_Y = normalize(spectre_2_Y)
+
+    # fig = plt.figure()
+    # ax = fig.add_subplot(111)
+    # ax.plot(spectre_1_X)
+    # ax.plot(spectre_2_X)
+    # plt.show()
 
 
     tvx = []
     tvy = []
-    # Try to translate the map with -10 and +10 directions
 
     # show("map_1_copy", map_1_copy, 1)
 
-    for x in range(-10, 10, 1):
-        map_2_rotated_copy = copy_map(map_2_rotated)
-        map_2_rotated_copy = translate_X(map_2_rotated_copy, x)
-        # show("map_2_rotated_copy", map_2_rotated_copy, 0)
-        X, Y = calc_translate(map_1_copy, map_2_rotated_copy, x)
-        tvx.append(X) # translated values x
+    for i in range(-10, 10, 1):
+        X = calc_correlation_for_translation(spectre_1_X, spectre_2_X, i)
+        tvx.append(X)
+        print(X)
 
-
-    for y in range(-10, 10, 1):
-        map_2_rotated_copy = copy_map(map_2_rotated)
-        map_2_rotated_copy = translate_Y(map_2_rotated_copy, y)
-        # show("map_2_rotated_copy", map_2_rotated_copy, 0)
-        X, Y = calc_translate(map_1_copy, map_2_rotated_copy, y)
+        Y = calc_correlation_for_translation(spectre_1_Y, spectre_2_Y, i)
         tvy.append(Y)
+
 
     return tvx, tvy
 
@@ -241,24 +191,19 @@ ax = fig.add_subplot(111)
 
 # rotate the map 90 dagrees counter-clockwise
 # This is because 90 degrees is what is the maximum correlation value
-map_2_rotated = np.rot90(map_2)
-# show("map_2_rotated", map_2_rotated, 0)
+# map_2_rotated = np.rot90(map_2)
+# show("map_2_rotated", map_2_rotated, 1)
+# show("map_1", map_1, 0)
 
 # Map translation
 
 # move map 10 steps on X to right and Y down
-tvx, tvy = translate_maps(map_1, map_2_rotated) 
+tvx, tvy = translate_maps(map_1, map_2) 
 
 stepx = np.arange(len(tvx)) - 10
 
-tvx_np = np.array(tvx)
-tvy_np = np.array(tvy)
-
-tvx_np = tvx_np / np.max(tvx_np)
-tvy_np = tvy_np / np.max(tvy_np)
-
-ax.plot(stepx, tvx_np)
-ax.plot(stepx, tvy_np)
+ax.plot(stepx, tvx)
+ax.plot(stepx, tvy)
 plt.show()
 
 # ax.plot(stepx, tvy_map_1)
