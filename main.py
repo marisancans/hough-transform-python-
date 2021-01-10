@@ -80,11 +80,11 @@ def calc_correlation_for_translation(series_1, series_2, position):
 
     for i in range(abs(position)):
         if direction:
-            s_1_cpy = np.delete(s_1_cpy, 0)
             s_2_cpy = np.delete(s_2_cpy, -1)
+            s_2_cpy = np.insert(s_2_cpy, 0, 0)
         else:
-            s_1_cpy = np.delete(s_1_cpy, -1)
-            s_2_cpy = np.delete(s_2_cpy, 0) 
+            s_2_cpy = np.delete(s_2_cpy, 0)
+            s_2_cpy = np.insert(s_2_cpy, -1, 0) 
 
     x = s_1_cpy * s_2_cpy
     c = np.sum(x)
@@ -95,11 +95,13 @@ def normalize(np_arr):
     return np_arr / np.max(np_arr)
 
 def translate_maps(map_1, map_2_rotated):
-    spectre_1_X = np.sum(map_1, axis=0)
-    spectre_2_X = np.sum(map_2_rotated, axis=0)
+    map_1_inverted = map_1 + 1
+    map_2_rotated_inverted = map_2_rotated + 1
+    spectre_1_X = np.sum(map_1_inverted, axis=0)
+    spectre_2_X = np.sum(map_2_rotated_inverted, axis=0)
 
-    spectre_1_Y = np.sum(map_1, axis=1)
-    spectre_2_Y = np.sum(map_2_rotated, axis=1)
+    spectre_1_Y = np.sum(map_1_inverted, axis=1)
+    spectre_2_Y = np.sum(map_2_rotated_inverted, axis=1)
 
     # Normalize
     # spectre_1_X = normalize(spectre_1_X)
@@ -123,7 +125,6 @@ def translate_maps(map_1, map_2_rotated):
     for i in range(-10, 10, 1):
         X = calc_correlation_for_translation(spectre_1_X, spectre_2_X, i)
         tvx.append(X)
-        print(X)
 
         Y = calc_correlation_for_translation(spectre_1_Y, spectre_2_Y, i)
         tvy.append(Y)
@@ -149,7 +150,7 @@ map_2 = cv2.imread('map_2.bmp', cv2.IMREAD_GRAYSCALE)
 spectre_2, accumulator_2 = get_spectre(map_2, thetas)
 # show('map_2', map_2, 1)
 
-diff = cv2.absdiff(accumulator_1 / accumulator_1.max(), accumulator_2 / accumulator_2.max())
+# diff = cv2.absdiff(accumulator_1 / accumulator_1.max(), accumulator_2 / accumulator_2.max())
 # show('diff', diff, 0)
 # show('spectre 1', accumulator_1 / accumulator_1.max(), 0)
 # show('spectre 2', accumulator_2 / accumulator_2.max(), 0)
@@ -191,16 +192,19 @@ ax = fig.add_subplot(111)
 
 # rotate the map 90 dagrees counter-clockwise
 # This is because 90 degrees is what is the maximum correlation value
-# map_2_rotated = np.rot90(map_2)
-# show("map_2_rotated", map_2_rotated, 1)
-# show("map_1", map_1, 0)
+map_2_rotated = np.rot90(map_2)
+show("map_2_rotated", map_2_rotated, 1)
+show("map_1", map_1, 0)
 
 # Map translation
 
 # move map 10 steps on X to right and Y down
-tvx, tvy = translate_maps(map_1, map_2) 
+tvx, tvy = translate_maps(map_1, map_2_rotated) 
 
 stepx = np.arange(len(tvx)) - 10
+
+print('max_x', np.argmax(tvx) - 10)
+print('max_y', np.argmax(tvy) - 10)
 
 ax.plot(stepx, tvx)
 ax.plot(stepx, tvy)
