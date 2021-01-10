@@ -186,15 +186,15 @@ ax = fig.add_subplot(111)
 # ax.plot(spectre_1)
 # ax.plot(spectre_2)
 
-# ax.plot(cors_scaled)
-# ax.autoscale(enable=True) 
-# plt.show()
+# # ax.plot(cors_scaled)
+# # ax.autoscale(enable=True) 
+# # plt.show(block=True)
 
 # rotate the map 90 dagrees counter-clockwise
 # This is because 90 degrees is what is the maximum correlation value
 map_2_rotated = np.rot90(map_2)
-show("map_2_rotated", map_2_rotated, 1)
-show("map_1", map_1, 0)
+# show("map_2_rotated", map_2_rotated, 1)
+# show("map_1", map_1, 0)
 
 # Map translation
 
@@ -203,12 +203,20 @@ tvx, tvy = translate_maps(map_1, map_2_rotated)
 
 stepx = np.arange(len(tvx)) - 10
 
-print('max_x', np.argmax(tvx) - 10)
-print('max_y', np.argmax(tvy) - 10)
+max_x = np.argmax(tvx) - 10
+max_y = np.argmax(tvy) - 10
+print('max_x', max_x)
+print('max_y', max_y)
 
-ax.plot(stepx, tvx)
-ax.plot(stepx, tvy)
-plt.show()
+# ax.plot(stepx, tvx)
+# ax.plot(stepx, tvy)
+# plt.show()
+
+map_2_rotated = np.roll(map_2_rotated, max_x, axis=1)
+map_2_rotated = np.roll(map_2_rotated, max_y, axis=0)
+
+show("map_1", map_1, 1)
+show("map_2_rotated", map_2_rotated)
 
 # ax.plot(stepx, tvy_map_1)
 # ax.plot(stepx, tvy_map_2)
